@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Saúde Mental</title>
+    <title>Meu Diário</title>
     <!-- Bibliotecas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -46,18 +46,17 @@
             box-shadow: 0 0 0 3px rgba(163, 177, 138, 0.15);
         }
 
-        /* Classe para esconder o template do relatorio visualmente, mas permitir renderização */
         .export-template-container {
             position: absolute;
             left: -9999px;
             top: 0;
-            width: 800px; /* Largura fixa para o relatório PDF/PNG */
+            width: 800px; 
             z-index: -1;
         }
 
-        /* Regras para a geração do PDF nativo */
+        /* Regras melhoradas para PDF com margem interna forçada */
         @media print {
-            body > nav, body > main, body > div[id="exportModal"], body > div[id="toast"] {
+            body > nav, body > main, body > div[id="exportModal"], body > div[id="addTagModal"], body > div[id="toast"] {
                 display: none !important;
             }
             .export-template-container {
@@ -69,15 +68,18 @@
             }
             #reportRenderArea {
                 width: 100% !important;
-                padding: 0 !important;
-                background-color: transparent !important; /* Deixa o fundo limpo para o PDF */
+                background-color: transparent !important;
+                box-sizing: border-box !important;
+                /* Força uma margem interna generosa caso o usuário escolha "Sem Margens" no PDF */
+                padding: 2cm !important; 
             }
             * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
             @page {
-                margin: 1.5cm; /* Margem bonita para o PDF */
+                /* Diz ao sistema para não aplicar a margem padrão dele, nós controlamos no padding acima */
+                margin: 0; 
             }
         }
     </style>
@@ -108,12 +110,11 @@
                     <div class="bg-cozy-sage text-white p-2.5 rounded-xl shadow-sm">
                         <i class="fa-solid fa-mug-hot"></i>
                     </div>
-                    <span class="font-bold text-xl text-cozy-text tracking-wide">Mente em Foco</span>
+                    <span class="font-bold text-xl text-cozy-text tracking-wide">Meu Diário</span>
                 </div>
                 <div class="flex items-center gap-4">
-                    <!-- Botão de Exportar -->
                     <button onclick="openExportModal()" class="bg-cozy-peach hover:bg-cozy-sand text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-file-export"></i> <span class="hidden sm:inline">Relatório para Psi</span>
+                        <i class="fa-solid fa-file-export"></i> <span class="hidden sm:inline">Relatório</span>
                     </button>
                     <div class="text-sm font-medium text-cozy-light hidden md:block" id="currentDateTime"></div>
                 </div>
@@ -126,9 +127,13 @@
         <!-- Lado Esquerdo: Formulário -->
         <div class="w-full lg:w-[40%] flex flex-col gap-6">
             <div class="bg-cozy-card rounded-3xl shadow-sm border border-cozy-border p-7">
-                <h2 class="text-xl font-bold text-cozy-text mb-6 flex items-center gap-3">
-                    <i class="fa-solid fa-seedling text-cozy-sage"></i> Como você está agora?
-                </h2>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-cozy-text flex items-center gap-3">
+                        <i class="fa-solid fa-seedling text-cozy-sage"></i> Como você está agora?
+                    </h2>
+                    <input type="datetime-local" id="customDateTime" class="text-[10px] font-medium text-cozy-border hover:text-cozy-light focus:text-cozy-text bg-transparent border-none p-0 outline-none cursor-pointer opacity-50 hover:opacity-100 transition-opacity" title="Anotar no passado">
+                </div>
+                <!-- Removido o 'required' dos inputs de texto para permitir envios vazios -->
                 <form id="entryForm" class="space-y-6">
                     <div>
                         <div class="grid grid-cols-5 gap-2">
@@ -141,16 +146,16 @@
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-semibold text-cozy-text mb-1.5 pl-1">Em poucas palavras, o que sente?</label>
-                            <input type="text" id="emotionText" placeholder="Ex: Sinto um aperto no peito..." required class="w-full px-4 py-3 rounded-xl outline-none text-sm">
+                            <label class="block text-sm font-semibold text-cozy-text mb-1.5 pl-1">Em poucas palavras, o que sente? <span class="text-xs font-normal text-cozy-light">(Opcional)</span></label>
+                            <input type="text" id="emotionText" placeholder="Ex: Sinto um aperto no peito..." class="w-full px-4 py-3 rounded-xl outline-none text-sm">
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-cozy-text mb-1.5 pl-1">Qual o gatilho?</label>
-                            <textarea id="reasonText" rows="2" placeholder="Ex: Acredito que seja por conta de..." required class="w-full px-4 py-3 rounded-xl outline-none text-sm resize-none"></textarea>
+                            <label class="block text-sm font-semibold text-cozy-text mb-1.5 pl-1">Qual o gatilho? <span class="text-xs font-normal text-cozy-light">(Opcional)</span></label>
+                            <textarea id="reasonText" rows="2" placeholder="Se quiser, descreva o que causou isso..." class="w-full px-4 py-3 rounded-xl outline-none text-sm resize-none"></textarea>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-cozy-text mb-1.5 pl-1">Um passo gentil para sair disso:</label>
-                            <textarea id="actionText" rows="2" placeholder="Ex: Vou fazer um chá e ler." required class="w-full px-4 py-3 rounded-xl outline-none text-sm resize-none"></textarea>
+                            <label class="block text-sm font-semibold text-cozy-text mb-1.5 pl-1">Um passo gentil para sair disso: <span class="text-xs font-normal text-cozy-light">(Opcional)</span></label>
+                            <textarea id="actionText" rows="2" placeholder="Ex: Vou fazer um chá." class="w-full px-4 py-3 rounded-xl outline-none text-sm resize-none transition-all"></textarea>
                         </div>
                     </div>
                     <div class="pt-4 border-t border-cozy-border/60">
@@ -160,7 +165,7 @@
                         <div class="mb-2"><span class="text-xs font-semibold text-cozy-light uppercase tracking-wider mb-2 block pl-1">Consumo & Hábitos</span><div class="flex flex-wrap gap-2" id="trackers-habits"></div></div>
                     </div>
                     <button type="submit" class="w-full mt-4 bg-cozy-sage hover:bg-cozy-sageDark text-white font-bold py-3.5 px-4 rounded-2xl shadow-md transition-all active:scale-[0.98] flex justify-center items-center gap-2">
-                        <i class="fa-solid fa-heart"></i> Guardar no Diário
+                        <i class="fa-solid fa-heart"></i> Guardar
                     </button>
                 </form>
             </div>
@@ -200,14 +205,12 @@
             <div class="bg-cozy-card rounded-3xl shadow-sm border border-cozy-border p-6 flex-1 flex flex-col">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <h2 class="text-xl font-bold text-cozy-text flex items-center gap-2">
-                        <i class="fa-solid fa-book-open text-cozy-sand"></i> Meu Diário
+                        <i class="fa-solid fa-book-open text-cozy-sand"></i> Histórico
                     </h2>
                     
-                    <!-- Filtro e Limpar -->
-                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div class="flex items-center gap-3 w-full sm:w-auto flex-wrap">
                         <select id="tagFilter" onchange="applyFilter()" class="flex-1 sm:w-48 px-3 py-2 rounded-xl text-sm font-medium outline-none cursor-pointer">
                             <option value="">Todos os marcadores</option>
-                            <!-- Populado via JS -->
                         </select>
                         <button onclick="clearData()" class="text-xs font-semibold text-cozy-light hover:text-red-400 transition-colors bg-cozy-bg px-3 py-2 rounded-xl">Limpar</button>
                     </div>
@@ -229,7 +232,7 @@
     <div id="exportModal" class="fixed inset-0 bg-cozy-text/50 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-opacity opacity-0">
         <div class="bg-cozy-card p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4 transform scale-95 transition-transform" id="exportModalContent">
             <h3 class="text-xl font-bold text-cozy-text mb-2 flex items-center gap-2"><i class="fa-solid fa-download text-cozy-sage"></i> Exportar Relatório</h3>
-            <p class="text-sm text-cozy-light mb-6">Gere uma imagem bonita com os seus dados para enviar para a sua psicóloga.</p>
+            <p class="text-sm text-cozy-light mb-6">Gere um PDF bonito com os seus dados para enviar para a sua psicóloga.</p>
             
             <label class="block text-sm font-bold text-cozy-text mb-2">Selecione o período:</label>
             <select id="exportPeriod" class="w-full p-3 rounded-xl mb-6">
@@ -247,11 +250,24 @@
         </div>
     </div>
 
-    <!-- Template Oculto para o PDF/PNG -->
-    <div class="export-template-container">
-        <div id="reportRenderArea" class="bg-[#f4f1ea] p-10 font-quicksand text-[#5c544d] w-[800px]">
-            <!-- Conteúdo será injetado aqui dinamicamente pelo JS -->
+    <!-- Modal de Quick Add Tag -->
+    <div id="addTagModal" class="fixed inset-0 bg-cozy-text/50 backdrop-blur-sm z-50 hidden flex items-center justify-center transition-opacity opacity-0">
+        <div class="bg-cozy-card p-6 rounded-3xl shadow-2xl max-w-sm w-full mx-4 transform scale-95 transition-transform flex flex-col max-h-[80vh]" id="addTagModalContent">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-cozy-text"><i class="fa-solid fa-tag text-cozy-sage mr-2"></i> Adicionar Marcador</h3>
+                <button onclick="closeAddTagModal()" class="text-cozy-light hover:text-cozy-peach"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="overflow-y-auto pr-2 space-y-4" id="addTagListContainer">
+                <!-- Populado via JS com todas as tags disponíveis -->
+            </div>
         </div>
+    </div>
+
+    <!-- Template Oculto para o PDF -->
+    <div class="export-template-container">
+        <!-- O padding aqui garante espaçamento seguro mesmo se a impressora estiver sem margens -->
+        <div id="reportRenderArea" class="bg-[#f4f1ea] p-10 font-quicksand text-[#5c544d] w-[800px]"></div>
     </div>
 
     <!-- Toast -->
@@ -302,20 +318,42 @@
         let moodChartInstance = null;
         let habitsChartInstance = null;
         let currentFilter = '';
+        let targetEntryForTag = null; // Para o Quick Add Tag
 
         // --- Inicialização ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadData();
+            loadAndMigrateData();
             renderTrackerCheckboxes();
             updateDateTime();
             setInterval(updateDateTime, 60000);
             updateDashboard();
             document.getElementById('entryForm').addEventListener('submit', handleFormSubmit);
+            buildAddTagModalContent();
         });
 
-        function loadData() {
+        function loadAndMigrateData() {
             const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) entries = JSON.parse(stored);
+            if (stored) {
+                entries = JSON.parse(stored);
+                return;
+            }
+            const oldStored = localStorage.getItem('@mentalHealthDashboard:entries');
+            if (oldStored) {
+                const oldEntries = JSON.parse(oldStored);
+                entries = oldEntries.map(e => {
+                    const mappedTrackers = [];
+                    if(e.habits) {
+                        if(e.habits.gym) mappedTrackers.push('Academia');
+                        if(e.habits.anxiety) mappedTrackers.push('Ansiedade');
+                        if(e.habits.substance) mappedTrackers.push('Álcool');
+                    }
+                    return {
+                        id: e.id, timestamp: e.timestamp, mood: e.mood, emotion: e.emotion,
+                        reason: e.reason, action: e.action, trackers: mappedTrackers
+                    };
+                });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+            }
         }
 
         function renderTrackerCheckboxes() {
@@ -341,16 +379,23 @@
         function handleFormSubmit(e) {
             e.preventDefault();
             const mood = document.querySelector('input[name="mood"]:checked')?.value;
-            const emotionText = document.getElementById('emotionText').value;
-            const reasonText = document.getElementById('reasonText').value;
-            const actionText = document.getElementById('actionText').value;
+            
+            // Textos agora tem fallbacks amigáveis se estiverem vazios
+            const emotionText = document.getElementById('emotionText').value.trim() || "Apenas registro de momento.";
+            const reasonText = document.getElementById('reasonText').value.trim() || "Não houve anotações.";
+            const actionText = document.getElementById('actionText').value.trim() || "Não houve anotações.";
+            
             const checkedTrackers = Array.from(document.querySelectorAll('input[name="trackers"]:checked')).map(cb => cb.value);
 
             if (!mood) return showToast('Escolha um ícone de humor no topo.', true);
 
+            // Verifica se uma data personalizada foi definida
+            const customDateTime = document.getElementById('customDateTime').value;
+            const finalTimestamp = customDateTime ? new Date(customDateTime).toISOString() : new Date().toISOString();
+
             entries.push({
                 id: crypto.randomUUID(),
-                timestamp: new Date().toISOString(),
+                timestamp: finalTimestamp,
                 mood: parseInt(mood),
                 emotion: emotionText,
                 reason: reasonText,
@@ -360,6 +405,7 @@
 
             localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
             e.target.reset();
+            document.getElementById('customDateTime').value = ''; // Limpa o campo de data retroativa
             document.querySelectorAll('.mood-radio, .tracker-checkbox').forEach(r => r.checked = false);
             
             showToast('Momento guardado no diário. 🤎');
@@ -374,20 +420,86 @@
             renderHabitsChart();
         }
 
+        // --- Adição Rápida de Tags (Quick Add) ---
+        function buildAddTagModalContent() {
+            const container = document.getElementById('addTagListContainer');
+            let html = '';
+            
+            const sections = [
+                { title: 'Corpo & Movimento', data: trackerCategories.physical },
+                { title: 'Emoções', data: trackerCategories.emotions },
+                { title: 'Hábitos', data: trackerCategories.habits }
+            ];
+
+            sections.forEach(sec => {
+                html += `<div class="mb-3">
+                    <span class="text-[10px] font-bold text-cozy-light uppercase tracking-wider block mb-2">${sec.title}</span>
+                    <div class="flex flex-wrap gap-2">
+                        ${sec.data.map(t => `
+                            <button onclick="confirmQuickAddTag('${t.id}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cozy-border bg-white text-xs font-semibold text-cozy-text hover:bg-cozy-sage hover:text-white hover:border-cozy-sage transition-all">
+                                <i class="fa-solid ${t.icon} opacity-80"></i> ${t.id}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function openAddTagModal(entryId) {
+            targetEntryForTag = entryId;
+            const modal = document.getElementById('addTagModal');
+            const content = document.getElementById('addTagModalContent');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeAddTagModal() {
+            const modal = document.getElementById('addTagModal');
+            const content = document.getElementById('addTagModalContent');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); targetEntryForTag = null; }, 300);
+        }
+
+        function confirmQuickAddTag(tagName) {
+            const entryIndex = entries.findIndex(e => e.id === targetEntryForTag);
+            if (entryIndex !== -1) {
+                if (!entries[entryIndex].trackers.includes(tagName)) {
+                    entries[entryIndex].trackers.push(tagName);
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+                    updateDashboard();
+                    showToast(`Marcador "${tagName}" adicionado!`);
+                } else {
+                    showToast('Este marcador já existe nesta anotação.', true);
+                }
+            }
+            closeAddTagModal();
+        }
+
+        function removeTagFromEntry(entryId, tagName) {
+            const entryIndex = entries.findIndex(e => e.id === entryId);
+            if (entryIndex !== -1) {
+                entries[entryIndex].trackers = entries[entryIndex].trackers.filter(t => t !== tagName);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+                updateDashboard();
+                // Não exibe toast para não incomodar muito, a remoção visual já é feedback suficiente
+            }
+        }
+
         // --- Sistema de Filtro ---
         function populateFilterOptions() {
             const select = document.getElementById('tagFilter');
-            // Salva a seleção atual
             const currentVal = select.value;
             
-            // Pega todos os trackers únicos usados na história
             const usedTrackers = new Set();
             entries.forEach(e => e.trackers.forEach(t => usedTrackers.add(t)));
             
             let html = '<option value="">Todos os marcadores</option>';
-            Array.from(usedTrackers).sort().forEach(t => {
-                html += `<option value="${t}">Filtro: ${t}</option>`;
-            });
+            Array.from(usedTrackers).sort().forEach(t => { html += `<option value="${t}">Filtro: ${t}</option>`; });
             
             select.innerHTML = html;
             select.value = currentVal || '';
@@ -403,12 +515,7 @@
             const container = document.getElementById('historyContainer');
             const emptyState = document.getElementById('emptyState');
             
-            let filteredEntries = entries;
-            
-            // Aplica filtro se houver
-            if (currentFilter) {
-                filteredEntries = entries.filter(e => e.trackers.includes(currentFilter));
-            }
+            let filteredEntries = currentFilter ? entries.filter(e => e.trackers.includes(currentFilter)) : entries;
 
             if (filteredEntries.length === 0) {
                 container.innerHTML = '';
@@ -424,8 +531,7 @@
             const grouped = {};
             
             sortedEntries.forEach(entry => {
-                const dateObj = new Date(entry.timestamp);
-                const dateKey = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+                const dateKey = new Date(entry.timestamp).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
                 if(!grouped[dateKey]) grouped[dateKey] = [];
                 grouped[dateKey].push(entry);
             });
@@ -446,11 +552,30 @@
                 dayEntries.forEach(entry => {
                     const timeStr = new Date(entry.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute:'2-digit' });
                     const moodInfo = moodMap[entry.mood];
+                    
+                    // Tags com função de clique para remover ("x" escondido no hover)
                     let trackersHtml = entry.trackers.map(t => `
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold ${t === currentFilter ? 'bg-cozy-sage text-white' : 'bg-cozy-bg text-cozy-text border border-cozy-border/50'}">
-                            <i class="fa-solid ${getIconForTracker(t)} ${t === currentFilter ? 'opacity-100' : 'opacity-60'}"></i> ${t}
+                        <span onclick="removeTagFromEntry('${entry.id}', '${t}')" title="Clique para remover" class="group cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold ${t === currentFilter ? 'bg-cozy-sage text-white' : 'bg-cozy-bg text-cozy-text border border-cozy-border/50 hover:border-red-300 hover:bg-red-50 hover:text-red-500'} transition-all">
+                            <i class="fa-solid ${getIconForTracker(t)} ${t === currentFilter ? 'opacity-100' : 'opacity-60'} group-hover:hidden"></i>
+                            <i class="fa-solid fa-xmark hidden group-hover:inline text-red-500"></i>
+                            ${t}
                         </span>
                     `).join('');
+
+                    // Botão rápido de Add Tag (+ Marcador)
+                    trackersHtml += `
+                        <button onclick="openAddTagModal('${entry.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold text-cozy-light border border-dashed border-cozy-border hover:border-cozy-sage hover:text-cozy-sage transition-all">
+                            <i class="fa-solid fa-plus"></i> Marcador
+                        </button>
+                    `;
+
+                    // Esconde seções vazias para visual mais limpo se o usuário enviar vazio
+                    const reasonHtml = entry.reason !== 'Não houve anotações.' 
+                        ? `<div><span class="text-[10px] font-bold text-cozy-light uppercase tracking-wider block mb-0.5"><i class="fa-solid fa-bolt text-cozy-sand mr-1"></i> Gatilho</span><p class="text-sm text-cozy-text/90 leading-relaxed">${entry.reason}</p></div>` 
+                        : '';
+                    const actionHtml = entry.action !== 'Não houve anotações.'
+                        ? `<div><span class="text-[10px] font-bold text-cozy-light uppercase tracking-wider block mb-0.5"><i class="fa-solid fa-seedling text-cozy-sage mr-1"></i> Autocuidado</span><p class="text-sm text-cozy-text/90 leading-relaxed">${entry.action}</p></div>`
+                        : '';
 
                     cardsContainer.insertAdjacentHTML('beforeend', `
                         <div class="bg-white rounded-2xl p-5 border border-cozy-border/50 shadow-[0_2px_8px_rgba(0,0,0,0.02)] relative group hover:border-cozy-sage/40 transition-colors">
@@ -467,9 +592,9 @@
                                 </button>
                             </div>
                             <div class="pl-13 space-y-3 mt-4 ml-[52px]">
-                                <div><span class="text-[10px] font-bold text-cozy-light uppercase tracking-wider block mb-0.5"><i class="fa-solid fa-bolt text-cozy-sand mr-1"></i> Gatilho</span><p class="text-sm text-cozy-text/90 leading-relaxed">${entry.reason}</p></div>
-                                <div><span class="text-[10px] font-bold text-cozy-light uppercase tracking-wider block mb-0.5"><i class="fa-solid fa-seedling text-cozy-sage mr-1"></i> Autocuidado</span><p class="text-sm text-cozy-text/90 leading-relaxed">${entry.action}</p></div>
-                                ${trackersHtml ? `<div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-cozy-border/30">${trackersHtml}</div>` : ''}
+                                ${reasonHtml}
+                                ${actionHtml}
+                                <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-cozy-border/30 select-none">${trackersHtml}</div>
                             </div>
                         </div>
                     `);
@@ -477,7 +602,7 @@
             }
         }
 
-        // --- Gráficos e Stats (Omitido lógica repetida, mesma da versão anterior, apenas refatorado) ---
+        // --- Stats e Graficos ---
         function updateStats() {
             const todayStr = new Date().toLocaleDateString('pt-BR');
             let todayCount = 0, sumMood7d = 0, count7d = 0;
@@ -529,13 +654,12 @@
             });
         }
 
-        // --- Exportação para a Psi (PDF/PNG via html2canvas) ---
+        // --- Exportação para PDF ---
         const modal = document.getElementById('exportModal');
         const modalContent = document.getElementById('exportModalContent');
 
         function openExportModal() {
             modal.classList.remove('hidden');
-            // Pequeno delay para animação CSS
             setTimeout(() => {
                 modal.classList.remove('opacity-0');
                 modalContent.classList.remove('scale-95');
@@ -550,8 +674,6 @@
 
         function generateReportPDF() {
             const days = parseInt(document.getElementById('exportPeriod').value);
-            
-            // 1. Filtrar as entradas pelo período selecionado
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - days);
             
@@ -559,13 +681,10 @@
                 .filter(e => new Date(e.timestamp) >= cutoffDate)
                 .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            // 2. Montar o HTML do Relatório Invisível
             const renderArea = document.getElementById('reportRenderArea');
-            
             const dateStrStart = cutoffDate.toLocaleDateString('pt-BR');
             const dateStrEnd = new Date().toLocaleDateString('pt-BR');
             
-            // Calculos para o relatorio
             let sumMood = 0;
             const repFreq = {};
             reportEntries.forEach(e => {
@@ -614,7 +733,11 @@
                     const dtStr = `${d.getDate()}/${d.getMonth()+1} às ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
                     const mood = moodMap[e.mood];
                     
-                    // Nota: o "page-break-inside: avoid;" evita que o card corte no meio se a página acabar
+                    const reasonHtml = e.reason !== 'Não houve anotações.' 
+                        ? `<div><strong class="text-[#8c837a] text-xs uppercase block mb-1">Gatilho:</strong> <span class="text-sm text-[#5c544d]">${e.reason}</span></div>` : '';
+                    const actionHtml = e.action !== 'Não houve anotações.'
+                        ? `<div><strong class="text-[#8c837a] text-xs uppercase block mb-1">Passo/Ação:</strong> <span class="text-sm text-[#5c544d]">${e.action}</span></div>` : '';
+
                     html += `
                         <div class="bg-[#fdfcfb] p-5 rounded-xl border border-[#e2ddd3] shadow-sm flex flex-col gap-3" style="page-break-inside: avoid;">
                             <div class="flex items-center justify-between border-b border-[#e2ddd3]/50 pb-2">
@@ -626,8 +749,8 @@
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-4">
-                                <div><strong class="text-[#8c837a] text-xs uppercase block mb-1">Gatilho:</strong> <span class="text-sm text-[#5c544d]">${e.reason}</span></div>
-                                <div><strong class="text-[#8c837a] text-xs uppercase block mb-1">Passo/Ação:</strong> <span class="text-sm text-[#5c544d]">${e.action}</span></div>
+                                ${reasonHtml}
+                                ${actionHtml}
                             </div>
                             ${e.trackers.length > 0 ? `<div class="mt-1 pt-2 flex gap-2 flex-wrap">
                                 ${e.trackers.map(t => `<span class="text-[10px] font-bold bg-[#eae5db] text-[#5c544d] px-2 py-1 rounded-md">${t}</span>`).join('')}
@@ -636,17 +759,11 @@
                     `;
                 });
             }
-            html += `</div>
-            <div class="mt-10 text-center text-xs text-[#8c837a] font-bold uppercase tracking-wider">
-                Gerado por Mente em Foco - Dashboard Pessoal
-            </div>`;
+            html += `</div>`;
             
             renderArea.innerHTML = html;
 
-            // 3. Imprimir nativamente (Salvar como PDF)
-            closeExportModal(); // Fecha o modal primeiro
-            
-            // Timeout para dar tempo do modal sumir da tela antes de abrir a janela de impressão
+            closeExportModal(); 
             setTimeout(() => {
                 window.print();
                 showToast('Pronto! Escolha "Salvar como PDF" nas opções.');
