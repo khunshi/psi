@@ -709,6 +709,13 @@
                 </div>
 
                 <div class="mb-8 bg-[#fdfcfb] rounded-2xl p-6 border border-[#e2ddd3] shadow-sm">
+                    <h2 class="text-lg font-bold text-[#5c544d] mb-4"><i class="fa-solid fa-wave-square text-[#a3b18a] mr-2"></i> Evolução do Humor</h2>
+                    <div class="relative h-48 w-full">
+                        <canvas id="printMoodChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="mb-8 bg-[#fdfcfb] rounded-2xl p-6 border border-[#e2ddd3] shadow-sm">
                     <h2 class="text-lg font-bold text-[#5c544d] mb-4"><i class="fa-solid fa-chart-pie text-[#e29578] mr-2"></i> Marcadores Frequentes</h2>
                     <div class="flex flex-wrap gap-4">
                         ${topTrackers.length > 0 ? topTrackers.map(t => `
@@ -762,6 +769,35 @@
             html += `</div>`;
             
             renderArea.innerHTML = html;
+
+            // Renderizar o gráfico de linhas apenas se houverem anotações
+            if (reportEntries.length > 0) {
+                const ctxPrint = document.getElementById('printMoodChart').getContext('2d');
+                // Ordenar cronologicamente para o gráfico fazer sentido (do mais antigo para o mais novo)
+                const chartEntries = [...reportEntries].sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+                
+                new Chart(ctxPrint, {
+                    type: 'line',
+                    data: {
+                        labels: chartEntries.map(e => `${new Date(e.timestamp).getDate()}/${new Date(e.timestamp).getMonth()+1}`),
+                        datasets: [{ 
+                            data: chartEntries.map(e => e.mood), 
+                            borderColor: '#a3b18a', 
+                            backgroundColor: 'rgba(163,177,138,0.1)', 
+                            borderWidth: 3, 
+                            fill: true, 
+                            tension: 0.3 
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        animation: false, // Desliga animação para a impressão puxar ele já pronto
+                        plugins: { legend: {display:false} }, 
+                        scales: { y: {min:1, max:5, ticks:{stepSize:1}} } 
+                    }
+                });
+            }
 
             closeExportModal(); 
             setTimeout(() => {
